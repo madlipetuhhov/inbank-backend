@@ -3,7 +3,6 @@ package ee.taltech.inbankbackend.service;
 import ee.taltech.inbankbackend.business.DecisionEngine;
 import ee.taltech.inbankbackend.business.dto.Decision;
 import ee.taltech.inbankbackend.infrastructure.config.DecisionEngineConstants;
-import ee.taltech.inbankbackend.exceptions.*;
 import ee.taltech.inbankbackend.infrastructure.exceptions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

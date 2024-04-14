@@ -1,11 +1,10 @@
 package ee.taltech.inbankbackend.endpoint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ee.taltech.inbankbackend.business.DecisionEngine;
+import ee.taltech.inbankbackend.business.dto.Decision;
 import ee.taltech.inbankbackend.business.dto.DecisionRequest;
 import ee.taltech.inbankbackend.business.dto.DecisionResponse;
-import ee.taltech.inbankbackend.exceptions.*;
-import ee.taltech.inbankbackend.business.dto.Decision;
-import ee.taltech.inbankbackend.business.DecisionEngine;
 import ee.taltech.inbankbackend.infrastructure.exceptions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,9 +19,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
