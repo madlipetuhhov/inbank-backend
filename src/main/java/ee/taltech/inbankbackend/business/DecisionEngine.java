@@ -55,12 +55,12 @@ public class DecisionEngine {
             throw new NoValidLoanException(errorMessage);
         }
 
-        while (highestValidLoanAmount(loanPeriod, loanAmount) < DecisionEngineConstants.MINIMUM_LOAN_AMOUNT) {
+        while (getHighestValidLoanAmount(loanPeriod, loanAmount) < DecisionEngineConstants.MINIMUM_LOAN_AMOUNT) {
             loanPeriod++;
         }
 
         if (loanPeriod <= DecisionEngineConstants.MAXIMUM_LOAN_PERIOD) {
-            outputLoanAmount = Math.min(DecisionEngineConstants.MAXIMUM_LOAN_AMOUNT, highestValidLoanAmount(loanPeriod, loanAmount));
+            outputLoanAmount = Math.min(DecisionEngineConstants.MAXIMUM_LOAN_AMOUNT, getHighestValidLoanAmount(loanPeriod, loanAmount));
         } else {
             throw new NoValidLoanException(errorMessage);
         }
@@ -133,19 +133,22 @@ public class DecisionEngine {
      *
      * @return Largest valid loan amount
      */
-    private int highestValidLoanAmount(int loanPeriod, Long loanAmount) {
+    private int getHighestValidLoanAmount(int loanPeriod, Long loanAmount) {
         float initialCreditScore = getCreditScore(loanPeriod, loanAmount);
         float creditScore = 0;
 
+        // score == 1 -> best case
         if (initialCreditScore == 1) {
             creditScore = initialCreditScore;
-        } else if (initialCreditScore > 1) {
+        } // score > 1 -> can possibly afford more, try bigger
+        else if (initialCreditScore > 1) {
             while (initialCreditScore > 1) {
                 loanAmount += 100;
                 initialCreditScore = getCreditScore(loanPeriod, loanAmount);
             }
             creditScore = initialCreditScore;
-        } else {
+        } // score < 1 -> can't afford amount, try lower
+        else {
             while (creditScore < 1) {
                 loanAmount -= 100;
                 creditScore = getCreditScore(loanPeriod, loanAmount);
@@ -174,9 +177,9 @@ public class DecisionEngine {
      */
 
     private int getAge(String personalCode) {
-        int birthYear = extractBirthYear(personalCode);
-        int birthMonth = extractBirthMonth(personalCode);
-        int birthDay = extractBirthDay(personalCode);
+        int birthYear = getBirthYear(personalCode);
+        int birthMonth = getBirthMonth(personalCode);
+        int birthDay = getBirthDay(personalCode);
         return calculateAge(birthYear, birthMonth, birthDay);
     }
 
@@ -186,7 +189,7 @@ public class DecisionEngine {
      * @param personalCode Provided personal ID code
      * @return Customer's birth year
      */
-    private int extractBirthYear(String personalCode) {
+    private int getBirthYear(String personalCode) {
         int year = Integer.parseInt(personalCode.substring(1, 3));
 
         int century = Integer.parseInt(personalCode.substring(0, 1));
@@ -203,7 +206,7 @@ public class DecisionEngine {
      * @param personalCode Provided personal ID code
      * @return Customer's birth month
      */
-    private int extractBirthMonth(String personalCode) {
+    private int getBirthMonth(String personalCode) {
         return Integer.parseInt(personalCode.substring(3, 5));
     }
 
@@ -213,7 +216,7 @@ public class DecisionEngine {
      * @param personalCode Provided personal ID code
      * @return Customer's birth day
      */
-    private int extractBirthDay(String personalCode) {
+    private int getBirthDay(String personalCode) {
         return Integer.parseInt(personalCode.substring(5, 7));
     }
 
