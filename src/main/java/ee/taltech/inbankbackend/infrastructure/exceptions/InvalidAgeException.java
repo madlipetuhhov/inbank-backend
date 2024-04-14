@@ -1,17 +1,18 @@
-package ee.taltech.inbankbackend.exceptions;
+package ee.taltech.inbankbackend.infrastructure.exceptions;
 
 /**
- * Thrown when requested loan period is invalid.
+ * Throw when the age does not fall within the allowed range (18-80) based on the given personal ID code.
  */
-public class InvalidLoanPeriodException extends Throwable {
+public class InvalidAgeException extends Throwable {
+
     private final String message;
     private final Throwable cause;
 
-    public InvalidLoanPeriodException(String message) {
+    public InvalidAgeException(String message) {
         this(message, null);
     }
 
-    public InvalidLoanPeriodException(String message, Throwable cause) {
+    public InvalidAgeException(String message, Throwable cause) {
         this.message = message;
         this.cause = cause;
     }
@@ -25,4 +26,5 @@ public class InvalidLoanPeriodException extends Throwable {
     public String getMessage() {
         return message;
     }
+
 }
