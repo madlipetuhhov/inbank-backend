@@ -2,11 +2,11 @@ package ee.taltech.inbankbackend.service;
 
 import com.github.vladislavgoltjajev.personalcode.locale.estonia.EstonianPersonalCodeValidator;
 import ee.taltech.inbankbackend.config.DecisionEngineConstants;
-import ee.taltech.inbankbackend.exceptions.InvalidLoanAmountException;
-import ee.taltech.inbankbackend.exceptions.InvalidLoanPeriodException;
-import ee.taltech.inbankbackend.exceptions.InvalidPersonalCodeException;
-import ee.taltech.inbankbackend.exceptions.NoValidLoanException;
+import ee.taltech.inbankbackend.exceptions.*;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.Period;
 
 /**
  * A service class that provides a method for calculating an approved loan amount and period for a customer.
@@ -34,17 +34,20 @@ public class DecisionEngine {
      * @throws InvalidLoanAmountException   If the requested loan amount is invalid
      * @throws InvalidLoanPeriodException   If the requested loan period is invalid
      * @throws NoValidLoanException         If there is no valid loan found for the given ID code, loan amount and loan period
+     * @throws InvalidAgeException          If the age does not fall within the allowed range (18-80)
      */
     public Decision calculateApprovedLoan(String personalCode, Long loanAmount, int loanPeriod)
             throws InvalidPersonalCodeException, InvalidLoanAmountException, InvalidLoanPeriodException,
-            NoValidLoanException {
+            NoValidLoanException, InvalidAgeException {
         try {
             verifyInputs(personalCode, loanAmount, loanPeriod);
         } catch (Exception e) {
             return new Decision(null, null, e.getMessage());
         }
+
         String errorMessage = "You are not approved for a loan.";
         int outputLoanAmount;
+
         creditModifier = getCreditModifier(personalCode);
 
         if (creditModifier == 0) {
@@ -65,33 +68,39 @@ public class DecisionEngine {
     }
 
     /**
-     * Calculates the largest valid loan for the current credit modifier and loan period.
+     * Verify that all inputs are valid according to business rules.
+     * If inputs are invalid, then throws corresponding exceptions.
      *
-     * @return Largest valid loan amount
+     * @param personalCode Provided personal ID code
+     * @param loanAmount   Requested loan amount
+     * @param loanPeriod   Requested loan period
+     * @throws InvalidPersonalCodeException If the provided personal ID code is invalid
+     * @throws InvalidLoanAmountException   If the requested loan amount is invalid
+     * @throws InvalidLoanPeriodException   If the requested loan period is invalid
+     * @throws InvalidAgeException          If the age does not fall within the allowed range (18-80)
      */
-    private int highestValidLoanAmount(int loanPeriod, Long loanAmount) {
-        float initialCreditScore = getCreditScore(loanPeriod, loanAmount);
-        float creditScore = 0;
+    private void verifyInputs(String personalCode, Long loanAmount, int loanPeriod)
+            throws InvalidPersonalCodeException, InvalidLoanAmountException, InvalidLoanPeriodException, InvalidAgeException {
 
-        if (initialCreditScore == 1) {
-            creditScore = initialCreditScore;
-        } else if (initialCreditScore > 1) {
-            while (initialCreditScore > 1) {
-                loanAmount += 100;
-                initialCreditScore = getCreditScore(loanPeriod, loanAmount);
-            }
-            creditScore = initialCreditScore;
-        } else {
-            while (creditScore < 1) {
-                loanAmount -= 100;
-                creditScore = getCreditScore(loanPeriod, loanAmount);
-            }
+        if (!validator.isValid(personalCode)) {
+            throw new InvalidPersonalCodeException("Invalid personal ID code!");
         }
-        return (int) (Math.floor(creditModifier * loanPeriod / creditScore / 100) * 100);
-    }
 
-    private float getCreditScore(int loanPeriod, Long loanAmount) {
-        return (float) creditModifier / loanAmount * loanPeriod;
+        int age = getAge(personalCode);
+        if (age < 18 || age > 80) {
+            throw new InvalidAgeException("You are not approved for a loan due to age.");
+        }
+
+        if ((DecisionEngineConstants.MINIMUM_LOAN_AMOUNT > loanAmount)
+                || (loanAmount > DecisionEngineConstants.MAXIMUM_LOAN_AMOUNT)) {
+            throw new InvalidLoanAmountException("Invalid loan amount!");
+        }
+
+        if ((DecisionEngineConstants.MINIMUM_LOAN_PERIOD > loanPeriod)
+                || (loanPeriod > DecisionEngineConstants.MAXIMUM_LOAN_PERIOD)) {
+            throw new InvalidLoanPeriodException("Invalid loan period!");
+        }
+
     }
 
     /**
@@ -119,31 +128,105 @@ public class DecisionEngine {
     }
 
     /**
-     * Verify that all inputs are valid according to business rules.
-     * If inputs are invalid, then throws corresponding exceptions.
+     * Calculates the largest valid loan for the current credit modifier, credit score and loan period.
+     *
+     * @return Largest valid loan amount
+     */
+    private int highestValidLoanAmount(int loanPeriod, Long loanAmount) {
+        float initialCreditScore = getCreditScore(loanPeriod, loanAmount);
+        float creditScore = 0;
+
+        if (initialCreditScore == 1) {
+            creditScore = initialCreditScore;
+        } else if (initialCreditScore > 1) {
+            while (initialCreditScore > 1) {
+                loanAmount += 100;
+                initialCreditScore = getCreditScore(loanPeriod, loanAmount);
+            }
+            creditScore = initialCreditScore;
+        } else {
+            while (creditScore < 1) {
+                loanAmount -= 100;
+                creditScore = getCreditScore(loanPeriod, loanAmount);
+            }
+        }
+        return (int) (Math.floor(creditModifier * loanPeriod / creditScore / 100) * 100);
+    }
+
+
+    /**
+     * Calculates credit score of the customer.
+     *
+     * @param loanAmount Requested loan amount
+     * @param loanPeriod Requested loan period
+     * @return Customer credit score.
+     */
+    private float getCreditScore(int loanPeriod, Long loanAmount) {
+        return (float) creditModifier / loanAmount * loanPeriod;
+    }
+
+    /**
+     * Calculates age of the customer at the time of data entry
      *
      * @param personalCode Provided personal ID code
-     * @param loanAmount   Requested loan amount
-     * @param loanPeriod   Requested loan period
-     * @throws InvalidPersonalCodeException If the provided personal ID code is invalid
-     * @throws InvalidLoanAmountException   If the requested loan amount is invalid
-     * @throws InvalidLoanPeriodException   If the requested loan period is invalid
+     * @return Customer's age at the time of data entry
      */
-    private void verifyInputs(String personalCode, Long loanAmount, int loanPeriod)
-            throws InvalidPersonalCodeException, InvalidLoanAmountException, InvalidLoanPeriodException {
 
-        if (!validator.isValid(personalCode)) {
-            throw new InvalidPersonalCodeException("Invalid personal ID code!");
-        }
-        if ((DecisionEngineConstants.MINIMUM_LOAN_AMOUNT > loanAmount)
-                || (loanAmount > DecisionEngineConstants.MAXIMUM_LOAN_AMOUNT)) {
-            throw new InvalidLoanAmountException("Invalid loan amount!");
-        }
+    private int getAge(String personalCode) {
+        int birthYear = extractBirthYear(personalCode);
+        int birthMonth = extractBirthMonth(personalCode);
+        int birthDay = extractBirthDay(personalCode);
+        return calculateAge(birthYear, birthMonth, birthDay);
+    }
 
-        if ((DecisionEngineConstants.MINIMUM_LOAN_PERIOD > loanPeriod)
-                || (loanPeriod > DecisionEngineConstants.MAXIMUM_LOAN_PERIOD)) {
-            throw new InvalidLoanPeriodException("Invalid loan period!");
-        }
+    /**
+     * Extracts customer's birth year from provided personal ID code.
+     *
+     * @param personalCode Provided personal ID code
+     * @return Customer's birth year
+     */
+    private int extractBirthYear(String personalCode) {
+        int year = Integer.parseInt(personalCode.substring(1, 3));
 
+        int century = Integer.parseInt(personalCode.substring(0, 1));
+        if (century == 3 || century == 4) {
+            return 1900 + year;
+        } else {
+            return 2000 + year;
+        }
+    }
+
+    /**
+     * Extracts customer's birth month from provided personal ID code.
+     *
+     * @param personalCode Provided personal ID code
+     * @return Customer's birth month
+     */
+    private int extractBirthMonth(String personalCode) {
+        return Integer.parseInt(personalCode.substring(3, 5));
+    }
+
+    /**
+     * Extracts customer's birth day from provided personal ID code.
+     *
+     * @param personalCode Provided personal ID code
+     * @return Customer's birth day
+     */
+    private int extractBirthDay(String personalCode) {
+        return Integer.parseInt(personalCode.substring(5, 7));
+    }
+
+    /**
+     * Calculates age of the customer at the time of data entry
+     *
+     * @param birthYear  Extracted birth year of the customer
+     * @param birthMonth Extracted birth month of the customer
+     * @param birthDay   Extracted birth day of the customer
+     * @return Customer's age at the time of data entry
+     */
+    private int calculateAge(int birthYear, int birthMonth, int birthDay) {
+        LocalDate birthdate = LocalDate.of(birthYear, birthMonth, birthDay);
+        LocalDate now = LocalDate.now();
+        return Period.between(birthdate, now).getYears();
     }
 }
