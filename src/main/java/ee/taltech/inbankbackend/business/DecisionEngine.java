@@ -1,8 +1,9 @@
-package ee.taltech.inbankbackend.service;
+package ee.taltech.inbankbackend.business;
 
 import com.github.vladislavgoltjajev.personalcode.locale.estonia.EstonianPersonalCodeValidator;
 import ee.taltech.inbankbackend.config.DecisionEngineConstants;
 import ee.taltech.inbankbackend.exceptions.*;
+import ee.taltech.inbankbackend.business.dto.Decision;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

@@ -1,9 +1,11 @@
 package ee.taltech.inbankbackend.endpoint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ee.taltech.inbankbackend.business.dto.DecisionRequest;
+import ee.taltech.inbankbackend.business.dto.DecisionResponse;
 import ee.taltech.inbankbackend.exceptions.*;
-import ee.taltech.inbankbackend.service.Decision;
-import ee.taltech.inbankbackend.service.DecisionEngine;
+import ee.taltech.inbankbackend.business.dto.Decision;
+import ee.taltech.inbankbackend.business.DecisionEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
